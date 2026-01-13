@@ -180,8 +180,7 @@ export default function Predict() {
 
     if (tab === "upload" && selectedFile) {
       formData.append("image", selectedFile);
-      uploadToAPI(formData);
-      return;
+      await uploadToAPI(formData);
     }
 
     const canvas = canvasRef.current;
