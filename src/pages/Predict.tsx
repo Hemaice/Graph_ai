@@ -171,6 +171,7 @@ export default function Predict() {
     }
   };
 
+  // FIXED: Only one image upload depending on selected mode
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
     setResults(null);
@@ -178,20 +179,30 @@ export default function Predict() {
 
     const formData = new FormData();
 
-    if (tab === "upload" && selectedFile) {
+    // UPLOAD TAB
+    if (tab === "upload") {
+      if (!selectedFile) {
+        setError("Please upload an image.");
+        setIsAnalyzing(false);
+        return;
+      }
       formData.append("image", selectedFile);
       await uploadToAPI(formData);
+      return;
     }
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    // DRAW TAB
+    if (tab === "draw") {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const file = new File([blob], "drawing.png", { type: "image/png" });
-      formData.append("image", file);
-      uploadToAPI(formData);
-    });
+      canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const file = new File([blob], "drawing.png", { type: "image/png" });
+        formData.append("image", file);
+        await uploadToAPI(formData);
+      });
+    }
   };
 
   const uploadToAPI = async (formData: FormData) => {
@@ -208,14 +219,11 @@ export default function Predict() {
 
       const data = await response.json();
 
-      console.log("API Response:", data);
-
-      const openness = Number(((data.Openness || 0)).toFixed(3));
-      const conscientiousness = Number(((data.Conscientiousness || 0)).toFixed(3));
-      const extraversion = Number(((data.Extraversion || 0)).toFixed(3));
-      const agreeableness = Number(((data.Agreeableness || 0)).toFixed(3));
-      const neuro_raw = Number(((data.Neuroticism || 0)).toFixed(3));
-      // Use backend dominant directly
+      const openness = Number((data.Openness || 0).toFixed(3));
+      const conscientiousness = Number((data.Conscientiousness || 0).toFixed(3));
+      const extraversion = Number((data.Extraversion || 0).toFixed(3));
+      const agreeableness = Number((data.Agreeableness || 0).toFixed(3));
+      const neuro_raw = Number((data.Neuroticism || 0).toFixed(3));
       const backendDominant = data.dominant_trait || "Unknown";
 
       setResults({
@@ -226,8 +234,6 @@ export default function Predict() {
         neuroticism: neuro_raw,
         dominant_trait: backendDominant,
       });
-
-
 
     } catch (err) {
       setError("Failed to process image. Try again.");
@@ -407,8 +413,7 @@ export default function Predict() {
             </h2>
 
             <div className="flex justify-center mb-8">
-              <div className="px-6 py-3 text-white font-semibold text-xl rounded-full
-                shadow-md"
+              <div className="px-6 py-3 text-white font-semibold text-xl rounded-full shadow-md"
                 style={{
                   background: "linear-gradient(to right, #1e3c72, #2a5298)"
                 }}
@@ -428,6 +433,7 @@ export default function Predict() {
             </table>
           </div>
         )}
+
       </div>
     </div>
   );
