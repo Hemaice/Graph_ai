@@ -1,5 +1,4 @@
 import { useRef, useState } from "react";
-import { predictPersonality } from "../services/api";
 
 export default function Predict() {
   const canvasRef = useRef(null);
@@ -35,9 +34,7 @@ export default function Predict() {
     ctx.stroke();
   };
 
-  const stopDrawing = () => {
-    setIsDrawing(false);
-  };
+  const stopDrawing = () => setIsDrawing(false);
 
   const clearCanvas = () => {
     const canvas = canvasRef.current;
@@ -45,9 +42,10 @@ export default function Predict() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 
-  /* ---------- PREDICT ---------- */
+  /* ---------- PREDICT (DIRECT API CALL) ---------- */
   const handlePredict = async () => {
     setLoading(true);
+
     try {
       let fileToSend = image;
 
@@ -62,16 +60,32 @@ export default function Predict() {
       }
 
       if (!fileToSend) {
-        alert("Please write or upload handwriting");
+        alert("Please upload or write handwriting");
         setLoading(false);
         return;
       }
 
-      const data = await predictPersonality(fileToSend);
+      const formData = new FormData();
+      formData.append("image", fileToSend);
+
+      const response = await fetch(
+        "https://handwritten-digital-data-backend.onrender.com/predict",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Prediction failed");
+      }
+
+      const data = await response.json();
       setResult(data);
     } catch (err) {
       alert(err.message);
     }
+
     setLoading(false);
   };
 
@@ -84,7 +98,6 @@ export default function Predict() {
         <label>
           <input
             type="radio"
-            value="upload"
             checked={mode === "upload"}
             onChange={() => setMode("upload")}
           />
@@ -94,7 +107,6 @@ export default function Predict() {
         <label style={{ marginLeft: "20px" }}>
           <input
             type="radio"
-            value="digital"
             checked={mode === "digital"}
             onChange={() => setMode("digital")}
           />
@@ -102,7 +114,7 @@ export default function Predict() {
         </label>
       </div>
 
-      {/* IMAGE UPLOAD MODE */}
+      {/* IMAGE UPLOAD */}
       {mode === "upload" && (
         <>
           <input type="file" accept="image/*" onChange={handleImageChange} />
@@ -110,7 +122,7 @@ export default function Predict() {
         </>
       )}
 
-      {/* DIGITAL WRITING MODE */}
+      {/* DIGITAL CANVAS */}
       {mode === "digital" && (
         <>
           <canvas
