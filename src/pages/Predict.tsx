@@ -407,8 +407,8 @@ export default function Predict() {
         {/* RESULTS */}
         {results && (
           
-
-            <table className="w-full border">
+        <div>
+          <table className="w-full border">
               <tbody>
                 <tr><td className="p-4 border">Openness</td><td className="p-4 border">{results.openness}%</td></tr>
                 <tr><td className="p-4 border">Conscientiousness</td><td className="p-4 border">{results.conscientiousness}%</td></tr>
@@ -417,6 +417,8 @@ export default function Predict() {
                 <tr><td className="p-4 border">Neuroticism</td><td className="p-4 border">{results.neuroticism}%</td></tr>
               </tbody>
             </table>
+        </div>
+            
         )}
 
       </div>
