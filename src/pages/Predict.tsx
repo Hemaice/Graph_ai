@@ -21,7 +21,6 @@ interface PredictionResult {
 
 export default function Predict() {
   const [tab, setTab] = useState<"upload" | "draw">("upload");
-
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
@@ -113,7 +112,6 @@ export default function Predict() {
     if (!canvas) return { x: 0, y: 0 };
 
     const rect = canvas.getBoundingClientRect();
-
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
@@ -147,16 +145,13 @@ export default function Predict() {
     if (!canvas || !ctx) return;
 
     const { x, y } = getCoords(e);
-
     ctx.strokeStyle = tool === "pen" ? penColor : "#ffffff";
     ctx.lineWidth = penSize;
     ctx.lineTo(x, y);
     ctx.stroke();
   };
 
-  const stopDraw = () => {
-    setIsDrawing(false);
-  };
+  const stopDraw = () => setIsDrawing(false);
 
   const handleFileSelect = (file: File) => {
     if (file && file.type.startsWith("image/")) {
@@ -171,7 +166,6 @@ export default function Predict() {
     }
   };
 
-  // FIXED: Only one image upload depending on selected mode
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
     setResults(null);
@@ -179,7 +173,6 @@ export default function Predict() {
 
     const formData = new FormData();
 
-    // UPLOAD TAB
     if (tab === "upload") {
       if (!selectedFile) {
         setError("Please upload an image.");
@@ -191,7 +184,6 @@ export default function Predict() {
       return;
     }
 
-    // DRAW TAB
     if (tab === "draw") {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -209,33 +201,21 @@ export default function Predict() {
     try {
       const response = await fetch(
         "https://handwriting-backend-api.onrender.com/predict",
-        {
-          method: "POST",
-          body: formData,
-        }
+        { method: "POST", body: formData }
       );
 
       if (!response.ok) throw new Error("API error");
-
       const data = await response.json();
 
-      const openness = Number((data.Openness || 0).toFixed(3));
-      const conscientiousness = Number((data.Conscientiousness || 0).toFixed(3));
-      const extraversion = Number((data.Extraversion || 0).toFixed(3));
-      const agreeableness = Number((data.Agreeableness || 0).toFixed(3));
-      const neuro_raw = Number((data.Neuroticism || 0).toFixed(3));
-      const backendDominant = data.dominant_trait || "Unknown";
-
       setResults({
-        openness,
-        conscientiousness,
-        extraversion,
-        agreeableness,
-        neuroticism: neuro_raw,
-        dominant_trait: backendDominant,
+        openness: Number((data.Openness || 0).toFixed(3)),
+        conscientiousness: Number((data.Conscientiousness || 0).toFixed(3)),
+        extraversion: Number((data.Extraversion || 0).toFixed(3)),
+        agreeableness: Number((data.Agreeableness || 0).toFixed(3)),
+        neuroticism: Number((data.Neuroticism || 0).toFixed(3)),
+        dominant_trait: data.dominant_trait || "Unknown",
       });
-
-    } catch (err) {
+    } catch {
       setError("Failed to process image. Try again.");
     } finally {
       setIsAnalyzing(false);
@@ -249,19 +229,13 @@ export default function Predict() {
         {/* TAB SWITCH */}
         <div className="flex justify-center mb-10">
           <button
-            onClick={() => {
-              setTab("upload");
-              setResults(null);
-            }}
+            onClick={() => { setTab("upload"); setResults(null); }}
             className={`px-6 py-3 rounded-l-lg border ${tab === "upload" ? "bg-blue-600 text-white" : "bg-white text-gray-700"}`}
           >
             Upload Image
           </button>
           <button
-            onClick={() => {
-              setTab("draw");
-              setResults(null);
-            }}
+            onClick={() => { setTab("draw"); setResults(null); }}
             className={`px-6 py-3 rounded-r-lg border ${tab === "draw" ? "bg-blue-600 text-white" : "bg-white text-gray-700"}`}
           >
             Draw Handwriting
@@ -274,10 +248,7 @@ export default function Predict() {
             {!selectedImage ? (
               <div
                 className={`p-12 text-center border-2 border-dashed rounded-xl ${isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"}`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setIsDragging(true);
-                }}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={(e) => {
                   e.preventDefault();
@@ -305,13 +276,7 @@ export default function Predict() {
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-xl font-bold">Preview</h3>
-                  <button
-                    className="p-2"
-                    onClick={() => {
-                      setSelectedImage(null);
-                      setSelectedFile(null);
-                    }}
-                  >
+                  <button onClick={() => { setSelectedImage(null); setSelectedFile(null); }}>
                     <X />
                   </button>
                 </div>
@@ -324,66 +289,20 @@ export default function Predict() {
         {/* DRAW TAB */}
         {tab === "draw" && (
           <div className="bg-white p-8 rounded-xl shadow-lg border">
-
             <div className="flex gap-4 mb-4">
-              <button
-                className={`p-3 rounded-lg border ${tool === "pen" ? "bg-blue-600 text-white" : ""}`}
-                onClick={() => setTool("pen")}
-              >
-                <Pen />
-              </button>
-
-              <button
-                className={`p-3 rounded-lg border ${tool === "eraser" ? "bg-blue-600 text-white" : ""}`}
-                onClick={() => setTool("eraser")}
-              >
-                <Eraser />
-              </button>
-
-              <button className="p-3 border rounded-lg" onClick={undo}>
-                <Undo2 />
-              </button>
-
-              <button className="p-3 border rounded-lg" onClick={redo}>
-                <Redo2 />
-              </button>
-
-              <button className="p-3 border rounded-lg" onClick={clearCanvas}>
-                <RotateCcw />
-              </button>
-
-              <div className="flex items-center border rounded-lg px-3">
-                <span className="mr-2">Size</span>
-                <input
-                  type="range"
-                  min="1"
-                  max="15"
-                  value={penSize}
-                  onChange={(e) => setPenSize(Number(e.target.value))}
-                />
-              </div>
-
-              <div className="flex items-center border rounded-lg px-3">
-                <input
-                  type="color"
-                  value={penColor}
-                  onChange={(e) => setPenColor(e.target.value)}
-                  className="w-8 h-8"
-                />
-              </div>
+              <button className={`p-3 rounded-lg border ${tool === "pen" ? "bg-blue-600 text-white" : ""}`} onClick={() => setTool("pen")}><Pen /></button>
+              <button className={`p-3 rounded-lg border ${tool === "eraser" ? "bg-blue-600 text-white" : ""}`} onClick={() => setTool("eraser")}><Eraser /></button>
+              <button className="p-3 border rounded-lg" onClick={undo}><Undo2 /></button>
+              <button className="p-3 border rounded-lg" onClick={redo}><Redo2 /></button>
+              <button className="p-3 border rounded-lg" onClick={clearCanvas}><RotateCcw /></button>
             </div>
-
             <canvas
               ref={canvasRef}
               onMouseDown={startDraw}
               onMouseMove={draw}
               onMouseUp={stopDraw}
-              onMouseLeave={stopDraw}
-              onTouchStart={startDraw}
-              onTouchMove={draw}
-              onTouchEnd={stopDraw}
-              className="border w-full rounded-lg bg-white touch-none"
-            ></canvas>
+              className="border w-full rounded-lg bg-white"
+            />
           </div>
         )}
 
@@ -392,24 +311,16 @@ export default function Predict() {
           <button
             onClick={handleAnalyze}
             disabled={isAnalyzing}
-            className="px-8 py-4 bg-blue-600 text-white rounded-xl shadow-lg text-xl disabled:opacity-50"
+            className="px-8 py-4 bg-blue-600 text-white rounded-xl shadow-lg text-xl"
           >
-            {isAnalyzing ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="animate-spin" /> Analyzing...
-              </span>
-            ) : (
-              "Analyze Handwriting"
-            )}
+            {isAnalyzing ? "Analyzing..." : "Analyze Handwriting"}
           </button>
         </div>
 
-        {/* RESULTS */}
+        {/* RESULTS (spacing fixed) */}
         {results && (
-      
-          
-        <div>
-          <table className="w-full border">
+          <div className="mt-8">
+            <table className="w-full border">
               <tbody>
                 <tr><td className="p-4 border">Openness</td><td className="p-4 border">{results.openness}%</td></tr>
                 <tr><td className="p-4 border">Conscientiousness</td><td className="p-4 border">{results.conscientiousness}%</td></tr>
@@ -418,13 +329,10 @@ export default function Predict() {
                 <tr><td className="p-4 border">Neuroticism</td><td className="p-4 border">{results.neuroticism}%</td></tr>
               </tbody>
             </table>
-        </div>
-            
+          </div>
         )}
 
       </div>
     </div>
   );
 }
-
-
