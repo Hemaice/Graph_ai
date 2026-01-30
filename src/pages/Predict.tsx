@@ -406,6 +406,7 @@ export default function Predict() {
 
         {/* RESULTS */}
         {results && (
+      
           
         <div>
           <table className="w-full border">
