@@ -406,21 +406,7 @@ export default function Predict() {
 
         {/* RESULTS */}
         {results && (
-          <div className="mt-12 bg-white p-8 rounded-xl shadow-xl border">
-
-            <h2 className="text-center text-2xl font-bold mb-6">
-              {/* Dominant Trait */}
-            </h2>
-
-            {/* <div className="flex justify-center mb-8"> */}
-              {/* <div className="px-6 py-3 text-white font-semibold text-xl rounded-full shadow-md" */}
-                {/* style={{ */}
-                  {/* // background: "linear-gradient(to right, #1e3c72, #2a5298)" */}
-                {/* }} */}
-              >
-                {/* /* {results.dominant_trait}  */}
-              </div>
-            </div>
+          
 
             <table className="w-full border">
               <tbody>
@@ -431,7 +417,6 @@ export default function Predict() {
                 <tr><td className="p-4 border">Neuroticism</td><td className="p-4 border">{results.neuroticism}%</td></tr>
               </tbody>
             </table>
-          </div>
         )}
 
       </div>
