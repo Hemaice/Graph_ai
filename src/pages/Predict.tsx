@@ -113,6 +113,7 @@ export default function Predict() {
     if (!canvas) return { x: 0, y: 0 };
 
     const rect = canvas.getBoundingClientRect();
+
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
@@ -146,13 +147,16 @@ export default function Predict() {
     if (!canvas || !ctx) return;
 
     const { x, y } = getCoords(e);
+
     ctx.strokeStyle = tool === "pen" ? penColor : "#ffffff";
     ctx.lineWidth = penSize;
     ctx.lineTo(x, y);
     ctx.stroke();
   };
 
-  const stopDraw = () => setIsDrawing(false);
+  const stopDraw = () => {
+    setIsDrawing(false);
+  };
 
   const handleFileSelect = (file: File) => {
     if (file && file.type.startsWith("image/")) {
@@ -167,6 +171,7 @@ export default function Predict() {
     }
   };
 
+  // FIXED: Only one image upload depending on selected mode
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
     setResults(null);
@@ -174,6 +179,7 @@ export default function Predict() {
 
     const formData = new FormData();
 
+    // UPLOAD TAB
     if (tab === "upload") {
       if (!selectedFile) {
         setError("Please upload an image.");
@@ -185,6 +191,7 @@ export default function Predict() {
       return;
     }
 
+    // DRAW TAB
     if (tab === "draw") {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -202,22 +209,33 @@ export default function Predict() {
     try {
       const response = await fetch(
         "https://handwriting-backend-api.onrender.com/predict",
-        { method: "POST", body: formData }
+        {
+          method: "POST",
+          body: formData,
+        }
       );
 
       if (!response.ok) throw new Error("API error");
 
       const data = await response.json();
 
+      const openness = Number((data.Openness || 0).toFixed(3));
+      const conscientiousness = Number((data.Conscientiousness || 0).toFixed(3));
+      const extraversion = Number((data.Extraversion || 0).toFixed(3));
+      const agreeableness = Number((data.Agreeableness || 0).toFixed(3));
+      const neuro_raw = Number((data.Neuroticism || 0).toFixed(3));
+      const backendDominant = data.dominant_trait || "Unknown";
+
       setResults({
-        openness: Number((data.Openness || 0).toFixed(3)),
-        conscientiousness: Number((data.Conscientiousness || 0).toFixed(3)),
-        extraversion: Number((data.Extraversion || 0).toFixed(3)),
-        agreeableness: Number((data.Agreeableness || 0).toFixed(3)),
-        neuroticism: Number((data.Neuroticism || 0).toFixed(3)),
-        dominant_trait: data.dominant_trait || "Unknown",
+        openness,
+        conscientiousness,
+        extraversion,
+        agreeableness,
+        neuroticism: neuro_raw,
+        dominant_trait: backendDominant,
       });
-    } catch {
+
+    } catch (err) {
       setError("Failed to process image. Try again.");
     } finally {
       setIsAnalyzing(false);
@@ -228,11 +246,181 @@ export default function Predict() {
     <div className="min-h-screen bg-gray-50 py-12">
       <div className="max-w-6xl mx-auto px-4">
 
+        {/* TAB SWITCH */}
+        <div className="flex justify-center mb-10">
+          <button
+            onClick={() => {
+              setTab("upload");
+              setResults(null);
+            }}
+            className={`px-6 py-3 rounded-l-lg border ${tab === "upload" ? "bg-blue-600 text-white" : "bg-white text-gray-700"}`}
+          >
+            Upload Image
+          </button>
+          <button
+            onClick={() => {
+              setTab("draw");
+              setResults(null);
+            }}
+            className={`px-6 py-3 rounded-r-lg border ${tab === "draw" ? "bg-blue-600 text-white" : "bg-white text-gray-700"}`}
+          >
+            Draw Handwriting
+          </button>
+        </div>
+
+        {/* UPLOAD TAB */}
+        {tab === "upload" && (
+          <div className="bg-white p-8 rounded-xl shadow-lg border">
+            {!selectedImage ? (
+              <div
+                className={`p-12 text-center border-2 border-dashed rounded-xl ${isDragging ? "border-blue-500 bg-blue-50" : "border-gray-300"}`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  handleFileSelect(e.dataTransfer.files[0]);
+                }}
+              >
+                <Upload className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-lg text-gray-700 mb-3">Drag & drop handwriting image</p>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow"
+                >
+                  Browse
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => handleFileSelect(e.target.files?.[0] as File)}
+                />
+              </div>
+            ) : (
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-bold">Preview</h3>
+                  <button
+                    className="p-2"
+                    onClick={() => {
+                      setSelectedImage(null);
+                      setSelectedFile(null);
+                    }}
+                  >
+                    <X />
+                  </button>
+                </div>
+                <img src={selectedImage} className="w-full rounded-lg mb-4" />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* DRAW TAB */}
+        {tab === "draw" && (
+          <div className="bg-white p-8 rounded-xl shadow-lg border">
+
+            <div className="flex gap-4 mb-4">
+              <button
+                className={`p-3 rounded-lg border ${tool === "pen" ? "bg-blue-600 text-white" : ""}`}
+                onClick={() => setTool("pen")}
+              >
+                <Pen />
+              </button>
+
+              <button
+                className={`p-3 rounded-lg border ${tool === "eraser" ? "bg-blue-600 text-white" : ""}`}
+                onClick={() => setTool("eraser")}
+              >
+                <Eraser />
+              </button>
+
+              <button className="p-3 border rounded-lg" onClick={undo}>
+                <Undo2 />
+              </button>
+
+              <button className="p-3 border rounded-lg" onClick={redo}>
+                <Redo2 />
+              </button>
+
+              <button className="p-3 border rounded-lg" onClick={clearCanvas}>
+                <RotateCcw />
+              </button>
+
+              <div className="flex items-center border rounded-lg px-3">
+                <span className="mr-2">Size</span>
+                <input
+                  type="range"
+                  min="1"
+                  max="15"
+                  value={penSize}
+                  onChange={(e) => setPenSize(Number(e.target.value))}
+                />
+              </div>
+
+              <div className="flex items-center border rounded-lg px-3">
+                <input
+                  type="color"
+                  value={penColor}
+                  onChange={(e) => setPenColor(e.target.value)}
+                  className="w-8 h-8"
+                />
+              </div>
+            </div>
+
+            <canvas
+              ref={canvasRef}
+              onMouseDown={startDraw}
+              onMouseMove={draw}
+              onMouseUp={stopDraw}
+              onMouseLeave={stopDraw}
+              onTouchStart={startDraw}
+              onTouchMove={draw}
+              onTouchEnd={stopDraw}
+              className="border w-full rounded-lg bg-white touch-none"
+            ></canvas>
+          </div>
+        )}
+
+        {/* ANALYZE BUTTON */}
+        <div className="text-center mt-10">
+          <button
+            onClick={handleAnalyze}
+            disabled={isAnalyzing}
+            className="px-8 py-4 bg-blue-600 text-white rounded-xl shadow-lg text-xl disabled:opacity-50"
+          >
+            {isAnalyzing ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="animate-spin" /> Analyzing...
+              </span>
+            ) : (
+              "Analyze Handwriting"
+            )}
+          </button>
+        </div>
+
         {/* RESULTS */}
         {results && (
           <div className="mt-12 bg-white p-8 rounded-xl shadow-xl border">
 
-            {/* Dominant Trait UI REMOVED */}
+            <h2 className="text-center text-2xl font-bold mb-6">
+              {/* Dominant Trait */}
+            </h2>
+
+            <div className="flex justify-center mb-8">
+              <div className="px-6 py-3 text-white font-semibold text-xl rounded-full shadow-md"
+                style={{
+                  background: "linear-gradient(to right, #1e3c72, #2a5298)"
+                }}
+              >
+                /* {results.dominant_trait} */
+              </div>
+            </div>
 
             <table className="w-full border">
               <tbody>
@@ -250,3 +438,5 @@ export default function Predict() {
     </div>
   );
 }
+
+
