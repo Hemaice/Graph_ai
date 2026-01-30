@@ -208,7 +208,7 @@ export default function Predict() {
   const uploadToAPI = async (formData: FormData) => {
     try {
       const response = await fetch(
-        "https://handwritten-digital-data-backend.onrender.com/predict",
+        "https://handwriting-backend-api.onrender.com/predict",
         {
           method: "POST",
           body: formData,
