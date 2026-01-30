@@ -97,14 +97,75 @@ export default function Predict() {
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
     canvas.width = 600;
     canvas.height = 400;
+
     const ctx = canvas.getContext("2d");
     if (ctx) {
       ctx.lineJoin = "round";
       ctx.lineCap = "round";
     }
   }, []);
+
+  const getCoords = (e: any) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+
+    const rect = canvas.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY,
+    };
+  };
+
+  const startDraw = (e: any) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    saveCanvasState();
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const { x, y } = getCoords(e);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    setIsDrawing(true);
+  };
+
+  const draw = (e: any) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+
+    const { x, y } = getCoords(e);
+    ctx.strokeStyle = tool === "pen" ? penColor : "#ffffff";
+    ctx.lineWidth = penSize;
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  };
+
+  const stopDraw = () => setIsDrawing(false);
+
+  const handleFileSelect = (file: File) => {
+    if (file && file.type.startsWith("image/")) {
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setSelectedImage(e.target?.result as string);
+        setResults(null);
+        setError(null);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleAnalyze = async () => {
     setIsAnalyzing(true);
@@ -127,6 +188,7 @@ export default function Predict() {
     if (tab === "draw") {
       const canvas = canvasRef.current;
       if (!canvas) return;
+
       canvas.toBlob(async (blob) => {
         if (!blob) return;
         const file = new File([blob], "drawing.png", { type: "image/png" });
@@ -153,7 +215,7 @@ export default function Predict() {
         extraversion: Number((data.Extraversion || 0).toFixed(3)),
         agreeableness: Number((data.Agreeableness || 0).toFixed(3)),
         neuroticism: Number((data.Neuroticism || 0).toFixed(3)),
-        dominant_trait: data.dominant_trait || "",
+        dominant_trait: data.dominant_trait || "Unknown",
       });
     } catch {
       setError("Failed to process image. Try again.");
@@ -170,7 +232,7 @@ export default function Predict() {
         {results && (
           <div className="mt-12 bg-white p-8 rounded-xl shadow-xl border">
 
-            {/* Dominant trait UI REMOVED */}
+            {/* Dominant Trait UI REMOVED */}
 
             <table className="w-full border">
               <tbody>
