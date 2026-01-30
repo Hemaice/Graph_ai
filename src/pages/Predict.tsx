@@ -412,11 +412,11 @@ export default function Predict() {
               {/* Dominant Trait */}
             </h2>
 
-            <div className="flex justify-center mb-8">
-              <div className="px-6 py-3 text-white font-semibold text-xl rounded-full shadow-md"
-                style={{
-                  background: "linear-gradient(to right, #1e3c72, #2a5298)"
-                }}
+            {/* <div className="flex justify-center mb-8"> */}
+              {/* <div className="px-6 py-3 text-white font-semibold text-xl rounded-full shadow-md" */}
+                {/* style={{ */}
+                  {/* // background: "linear-gradient(to right, #1e3c72, #2a5298)" */}
+                {/* }} */}
               >
                 {/* /* {results.dominant_trait}  */}
               </div>
